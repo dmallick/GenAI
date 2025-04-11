@@ -1,20 +1,28 @@
-print("hello")
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
+import langchain
+from langchain_huggingface import ChatHuggingFace
+#from langchain_huggingface import Hu
+#from langchain.llms import HuggingFaceLLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Initialize the Gemini Pro model
-llm = ChatGoogleGenerativeAI(model="gemini-pro")
+# Load pre-trained LLaMA model and tokenizer
+model_name = "decapoda-research/llama-7b-hf"
+model = AutoModelForCausalLM.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# Create a prompt template
-prompt = ChatPromptTemplate.from_messages([
-    ("human", "{topic}"),
-])
+# Create a LangChain LLM wrapper around the LLaMA model
+llm = ChatHuggingFace(model=model, tokenizer=tokenizer)
 
-# Create a chain
-chain = prompt | llm
+# Define a LangChain prompt template
+template = langchain.prompts.PromptTemplate(
+    input_variables=["input"],
+    template="You are a helpful assistant. {input}",
+)
 
-# Run the chain with a topic
-response = chain.invoke({"topic": "Explain the concept of black holes in simple terms."})
+# Create a LangChain chain with the LLaMA model and prompt template
+chain = langchain.chains.LLMChain(llm=llm, prompt=template)
 
-# Print the response
-print(response.content)
+# Run the chain with an example input
+input_text = "Tell me a joke."
+output = chain.run(input=input_text)
+
+print(output)
