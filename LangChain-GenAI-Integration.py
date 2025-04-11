@@ -2,9 +2,11 @@ import os
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAI
 from langchain.chains import LLMChain
-from langchain_core.runnables import RunnableSequence
-
+#from langchain_core.runnables import RunnableSequence
 from langchain.prompts import PromptTemplate
+
+#from langchain_google_genai import ChatGoogleGenerativeAI
+#from langchain_core.prompts import ChatPromptTemplate
 
 # Load environment variables from .env file
 load_dotenv()
