@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import requests
 
 from langchain.agents import initialize_agent, Tool
 from langchain.agents.agent_types import AgentType
@@ -12,7 +13,8 @@ load_dotenv()
 
 # Get the Google API key from the environment variables
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST")
 # Check if the API key is available
 if not GOOGLE_API_KEY:
     raise ValueError("Google API key not found. Please set the GOOGLE_API_KEY environment variable.")
@@ -56,6 +58,61 @@ def estimate_budget(destination: str) -> str:
     }
     estimate = cost_guide.get(destination, 1200)
     return f"Estimated budget for a 3-day trip to {destination}: ${estimate}"
+
+
+def search_hotels(destination: str) -> str:
+    url = "https://booking-com.p.rapidapi.com/v1/hotels/search"
+
+    querystring = {
+        "units": "metric",
+        "room_number": "1",
+        "checkout_date": "2025-05-05",
+        "checkin_date": "2025-05-01",
+        "adults_number": "2",
+        "dest_type": "city",
+        "locale": "en-us",
+        "order_by": "popularity",
+        "dest_id": get_destination_id(destination)
+    }
+
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": RAPIDAPI_HOST
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    hotels = response.json().get("result", [])[:3]  # top 3 hotels
+
+    if not hotels:
+        return "No hotels found. Try another destination."
+
+    result = "Top Hotels:\n"
+    for hotel in hotels:
+        result += f"- {hotel['hotel_name']} – ⭐ {hotel.get('review_score', 'N/A')} – ${hotel.get('min_total_price', 'N/A')}\n"
+    return result
+
+def get_destination_id(destination: str) -> str:
+    url = "https://booking-com.p.rapidapi.com/v1/hotels/locations"
+
+    querystring = {"name": destination, "locale": "en-us"}
+
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": RAPIDAPI_HOST
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    data = response.json()
+
+    if data:
+        return data[0]["dest_id"]
+    return "0"
+
+hotel_tool = Tool(
+    name="Hotel Finder",
+    func=search_hotels,
+    description="Finds top hotels in a destination using Booking.com"
+)
 
 budget_tool = Tool(
     name="Budget Estimator",
